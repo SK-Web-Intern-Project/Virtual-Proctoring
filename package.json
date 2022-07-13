@@ -1,0 +1,41 @@
+{
+  "name": "amazon-rekognition-virtual-proctor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run webui-build && npm run cfn-build && npm run webui-package",
+    "cfn-build": "npm run cfn-ensure-dist && cfn-flip -c -n -l src/cfn/template.yaml templates/template.yaml && npm run cfn-lambdas-dist && npm run cfn-copy-lambda",
+    "cfn-copy-lambda": "cp -R src/functions ./backend/",
+    "cfn-package": "aws cloudformation package --template-file templates/template.yaml --s3-bucket $CFN_BUCKET --output-template-file templates/packaged.yaml",
+    "cfn-ensure-dist": "if [ ! -d './templates' ]; then mkdir templates; fi",
+    "cfn-lambdas-dist": "if [ ! -d './backend/functions/' ]; then mkdir -p backend/functions/; fi",
+    "cfn-test-local": "npm run cfn-build && rain deploy templates/template.yaml VirtualProctorLocal -r eu-west-1",
+    "deploy": "npm run zip && aws s3 cp ./`npm run echo-version --silent`.zip s3://$CFN_BUCKET/$npm_package_name/`npm run echo-version --silent`/$npm_package_name.zip",
+    "echo-version": "echo v`node -e \"console.log(require('node-yaml').readSync('templates/template.yaml').Globals.Function.Environment.Variables.VERSION)\"`",
+    "postinstall": "cd src/functions/setup && npm i && cd ../proctor && npm i",
+    "start": "npm start --workspace src/web-ui",
+    "tag": "git tag `npm run echo-version --silent`",
+    "test": "cfn-lint templates/template.yaml",
+    "upload-custom-bucket": "aws s3 cp frontend.zip s3://$CFN_BUCKET/$npm_package_name/`npm run echo-version --silent`/frontend.zip",
+    "webui-build": "npm run build --workspace src/web-ui",
+    "webui-package": "cd src/web-ui/build && zip -r ../../../frontend.zip .",
+    "zip": "zip -r `npm run echo-version --silent`.zip -@ < ci/include.lst"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aws-samples/amazon-rekognition-virtual-proctor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aws-samples/amazon-rekognition-virtual-proctor/issues"
+  },
+  "homepage": "https://github.com/aws-samples/amazon-rekognition-virtual-proctor#readme",
+  "devDependencies": {
+    "js-yaml": "3.13.1",
+    "node-yaml": "4.0.1"
+  },
+  "workspaces": ["src/web-ui"],
+  "overrides": {
+    "nth-check": "2.0.1",
+    "autoprefixer": "10.4.5"
+  }
+}
